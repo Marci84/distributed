@@ -2,12 +2,12 @@
 -export([start/0]).
 
 start()->
-    Pid = spawn(fun()->listen_for_task()end),
-    register(worker,Pid),
-    Pid2 = spawn(fun()->handle_task_list([])end),
-    register(tasks,Pid2),
-    Pid3 = spawn(fun()->execute_tasks()end),
-    register(execute,Pid3),  
+    Task_listener = spawn(fun()->listen_for_task()end),
+    register(worker,Task_listener),
+    Task_handler = spawn(fun()->handle_task_list([])end),
+    register(tasks,Task_handler),
+    Task_executer = spawn(fun()->execute_tasks()end),
+    register(execute,Task_executer),  
     erlang:set_cookie(node(),distribute),
     connect_to_distributor().
 
@@ -54,21 +54,24 @@ execute_tasks()->
     tasks ! {pop, self(), Ref},
     receive
         {X, Ref} ->
-            check_timestamp(X)
+            execute_if_not_expired(X)
     after 50 ->
             do_nothing
     end,
         execute_tasks().
-        
-check_timestamp(Task)->
-    {Function,Pid,Timestamp} = Task,
-    Time_now = erlang:timestamp(),
-    case timer:now_diff(Time_now,Timestamp) of
-        Result when Result =< 1000000 ->
-            do_execute(Function,Pid);
-        Result when Result > 1000000 ->
-            send_response(Function,Pid)
+   
+execute_if_not_expired({Function,Pid,Timestamp})->    
+    case has_expired(Timestamp) of        
+        true ->
+            send_response(Function,Pid);
+        false ->
+            do_execute(Function,Pid)
     end.
+
+has_expired(Timestamp)->
+    Time_now = erlang:timestamp(),
+    timer:now_diff(Time_now,Timestamp) > 1000000.
+
 
 
 do_execute(Function,Pid)->    
@@ -80,8 +83,12 @@ do_execute(Function,Pid)->
             Pid ! Error
     end.
 
+
+
+
+
 send_response(Function,Pid)->
-    Pid ! io:format("Function: ~p has been timed out ~n",[Function]).
+    Pid ! io_lib:format("Function: ~p has been timed out ~n",[Function]).
 
 format_input(X)->
     case X of

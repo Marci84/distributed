@@ -39,11 +39,11 @@ start(Function)->
     end.
 
 check_start(Type)->
-    case [whereis(distributor),whereis(worker),whereis(caller)] of
-        [undefined,undefined,undefined] ->
+    case [whereis(Type)] of
+        [undefined] ->
             set_nodename(Type),
             handle_start(Type);        
-        [_,_,_] ->
+        [_] ->
             io:format("Function has been already started.~n")
     end.
 

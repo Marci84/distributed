@@ -19,8 +19,8 @@ get_worker()->
     List_of_nodes =  nodes(),
     Workers = lists:flatten(filter_nodes(List_of_nodes)),
     Node_and_size = get_task_number(Workers),
-    Node = get_node(Node_and_size,{default,999}),
-    Node.
+    get_node(Node_and_size,{default,999}).
+    
     
 get_task_number([])->
     [];
@@ -33,8 +33,7 @@ get_task_number([H|T])->
                end,
     [{H,Size}|get_task_number(T)].
     
-get_node([],Result)->
-    {Node,_} = Result,
+get_node([],{Node,_})->
     Node;
 get_node([H|T],Lowest_node)->
     {_,Task_number} = H,
